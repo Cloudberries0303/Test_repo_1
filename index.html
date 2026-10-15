@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#103f43">
+  <title>STL Studio — 3D-visare</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0b292d;--panel:#10383d;--panel2:#16474b;--line:#2b5a5d;--text:#eef7f4;--muted:#a8c5c1;--accent:#79e0c1;--accent2:#b4f2df;--danger:#ffb4a9}
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(ellipse at 50% -25%,#1d5558 0,transparent 55%),var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
+    .shell{max-width:1440px;margin:auto;padding:26px clamp(14px,3vw,38px) 30px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:22px}
+    .brand{display:flex;align-items:center;gap:12px}.logo{display:grid;place-items:center;width:42px;height:42px;border:1px solid #39736d;border-radius:13px;background:#16474b;color:var(--accent)}
+    .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.17em;color:var(--accent);font-weight:750}
+    h1{font-size:clamp(24px,3vw,34px);letter-spacing:-.04em;line-height:1.15;margin:2px 0 0}
+    .local-tag{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;border:1px solid var(--line);border-radius:999px;padding:8px 12px;white-space:nowrap}.dot{width:7px;height:7px;background:var(--accent);border-radius:50%;box-shadow:0 0 12px #79e0c180}
+    .layout{display:grid;grid-template-columns:minmax(0,1fr) 285px;gap:18px;align-items:stretch}
+    .viewer-card,.side-card{border:1px solid var(--line);background:linear-gradient(145deg,#123b40ed,#0d3034f5);border-radius:20px;overflow:hidden;box-shadow:0 18px 60px #04191b45}
+    .viewer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 18px;border-bottom:1px solid var(--line)}
+    .file-meta{min-width:0}.file-name{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.file-sub{font-size:12px;color:var(--muted)}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    button,.file-button{font:inherit;font-size:12px;font-weight:700;color:var(--text);background:#17464a;border:1px solid #35686a;border-radius:10px;padding:9px 12px;cursor:pointer;transition:background .15s,border-color .15s,transform .15s}
+    button:hover,.file-button:hover{background:#20585b;border-color:#5a9990}button:active,.file-button:active{transform:translateY(1px)}
+    button:focus-visible,.file-button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+    .primary{background:var(--accent);color:#073337;border-color:var(--accent)}.primary:hover{background:var(--accent2);border-color:var(--accent2);color:#073337}
+    .canvas-wrap{height:min(66vh,680px);min-height:390px;position:relative;background:radial-gradient(ellipse at 50% 45%,#19484b 0,#103538 46%,#0b292d 100%);overflow:hidden}
+    #viewport{position:absolute;inset:0}#viewport canvas{display:block;width:100%;height:100%;outline:none}
+    .drop-overlay{position:absolute;inset:15px;border:1.5px dashed #477a78;border-radius:15px;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;pointer-events:none;transition:background .2s,border-color .2s;z-index:2}
+    .drop-overlay.hidden{display:none}.drop-overlay .drop-box{max-width:320px}.upload-icon{width:58px;height:58px;margin:0 auto 14px;border:1px solid #39736d;background:#17464a;border-radius:18px;display:grid;place-items:center;color:var(--accent)}
+    .drop-overlay h2{font-size:18px;margin:0 0 6px}.drop-overlay p{color:var(--muted);font-size:13px;margin:0 0 16px}
+    .dragging .drop-overlay{background:#0b292de8;border-color:var(--accent)}
+    .viewer-hint{position:absolute;bottom:13px;left:50%;transform:translateX(-50%);display:flex;gap:14px;align-items:center;padding:8px 12px;border:1px solid #386466;background:#0b292dd9;backdrop-filter:blur(8px);border-radius:999px;color:#c4dbd6;font-size:11px;white-space:nowrap;pointer-events:none}
+    .viewer-hint span{display:flex;gap:5px;align-items:center}.key{border:1px solid #507779;border-radius:4px;padding:1px 5px;color:var(--accent);font-size:10px}
+    .viewer-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 18px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}.status{display:flex;align-items:center;gap:7px;min-width:0}.status-indicator{width:7px;height:7px;border-radius:50%;background:#779a97;flex:none}.status-indicator.ready{background:var(--accent)}.status-indicator.error{background:var(--danger)}
+    .side-card{padding:20px}.side-card h2{font-size:14px;letter-spacing:.01em;margin:0 0 14px}.side-card h2:not(:first-child){margin-top:25px}
+    .control{margin:15px 0}.control-top{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px;font-size:12px}.control-top label{color:#dcece8}.control-top output{color:var(--accent);font-variant-numeric:tabular-nums}
+    input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
+    .button-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.button-grid button{padding:10px 6px}
+    .info-list{display:grid;gap:0;margin:0}.info-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #285054;font-size:12px}.info-row:last-child{border-bottom:0}.info-row dt{color:var(--muted)}.info-row dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+    .note{font-size:11px;color:var(--muted);line-height:1.6;margin:16px 0 0}.note strong{color:#dcece8}
+    .footer-note{text-align:center;color:#719894;font-size:11px;margin-top:20px}
+    #file-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+    @media(max-width:850px){.layout{grid-template-columns:1fr}.canvas-wrap{height:58vh;min-height:340px}.side-card{display:grid;grid-template-columns:1fr 1fr;column-gap:24px}.side-card h2{grid-column:1/-1}.side-card h2:not(:first-child){margin-top:18px}.side-card .note{grid-column:1/-1}}
+    @media(max-width:520px){.shell{padding:16px 10px 22px}header{align-items:flex-start}.local-tag{font-size:0;padding:10px}.local-tag .dot{width:8px;height:8px}.viewer-head{align-items:flex-start;padding:13px}.actions{max-width:120px}.canvas-wrap{min-height:330px}.viewer-hint{font-size:10px;gap:8px;bottom:9px}.viewer-hint span:nth-child(2){display:none}.viewer-footer{align-items:flex-start;flex-direction:column}.side-card{display:block;padding:17px}.side-card h2:not(:first-child){margin-top:24px}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2.8 21 7.7v8.6l-9 4.9-9-4.9V7.7l9-4.9Z" stroke="currentColor" stroke-width="1.5"/><path d="m3.5 7.9 8.5 4.8 8.5-4.8M12 12.7v8.1M7.5 5.3l9 5" stroke="currentColor" stroke-width="1.5"/></svg></div>
+        <div><div class="eyebrow">Webbaserad 3D-visare</div><h1>STL Studio</h1></div>
+      </div>
+      <div class="local-tag"><span class="dot"></span> Lokal filhantering</div>
+    </header>
+    <div class="layout">
+      <section class="viewer-card" aria-label="3D-visare">
+        <div class="viewer-head">
+          <div class="file-meta"><div class="file-name" id="file-name">Ingen modell vald</div><div class="file-sub" id="file-sub">Ladda upp en STL-fil för att börja</div></div>
+          <div class="actions"><button id="reset-view" type="button" title="Återställ kamera">Återställ vy</button><button id="choose-file" class="primary" type="button">＋ Välj STL</button></div>
+        </div>
+        <div class="canvas-wrap" id="canvas-wrap">
+          <div id="viewport" aria-label="Interaktiv 3D-modell. Dra för att rotera, skrolla för att zooma och högerdra för att panorera."></div>
+          <div class="drop-overlay" id="drop-overlay">
+            <div class="drop-box">
+              <div class="upload-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M4 15.5v3A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <h2>Din modell, i 3D</h2><p>Dra en STL-fil hit eller välj en fil från din enhet. Modellen stannar i din webbläsare.</p>
+              <button class="primary" id="choose-file-empty" type="button">Välj STL-fil</button>
+            </div>
+          </div>
+          <div class="viewer-hint" aria-hidden="true"><span><b class="key">Dra</b> Rotera</span><span><b class="key">Scroll</b> Zooma</span><span><b class="key">Högerdra</b> Panorera</span></div>
+        </div>
+        <div class="viewer-footer"><div class="status"><span class="status-indicator" id="status-dot"></span><span id="status-text" role="status" aria-live="polite">Redo — välj en STL-fil</span></div><span id="triangle-count">0 trianglar</span></div>
+      </section>
+      <aside class="side-card">
+        <h2>Utseende</h2>
+        <div class="control"><div class="control-top"><label for="model-color">Modellfärg</label><output id="color-label">Mint</output></div><input id="model-color" type="range" min="0" max="4" value="0" step="1" aria-label="Modellfärg"></div>
+        <div class="control"><div class="control-top"><label for="model-scale">Modellstorlek</label><output id="scale-value">100 %</output></div><input id="model-scale" type="range" min="25" max="200" value="100" step="5"></div>
+        <h2>Kameravy</h2>
+        <div class="button-grid">
+          <button type="button" data-view="front">Framifrån</button><button type="button" data-view="top">Ovanifrån</button>
+          <button type="button" data-view="side">Från sidan</button><button type="button" data-view="iso">Isometrisk</button>
+          <button type="button" id="fit-model" style="grid-column:1/-1">Anpassa till fönstret</button>
+        </div>
+        <h2>Modellinformation</h2>
+        <dl class="info-list">
+          <div class="info-row"><dt>Filstorlek</dt><dd id="info-size">—</dd></div>
+          <div class="info-row"><dt>Dimensioner</dt><dd id="info-dimensions">—</dd></div>
+          <div class="info-row"><dt>Format</dt><dd id="info-format">STL</dd></div>
+        </dl>
+        <p class="note"><strong>Tips:</strong> Dra med vänster musknapp för att rotera, använd mushjulet för zoom och dra med höger musknapp för att flytta vyn. På pekskärm fungerar en- och tvåfingersgester.</p>
+      </aside>
+    </div>
+    <input id="file-input" type="file" accept=".stl,model/stl,application/sla">
+    <div class="footer-note">STL Studio · Dina filer laddas inte upp någonstans.</div>
+  </main>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+
+    const viewport = document.getElementById('viewport');
+    const wrap = document.getElementById('canvas-wrap');
+    const overlay = document.getElementById('drop-overlay');
+    const fileInput = document.getElementById('file-input');
+    const statusText = document.getElementById('status-text');
+    const statusDot = document.getElementById('status-dot');
+    const colors = [
+      {name:'Mint', value:0x79e0c1},
+      {name:'Porslin', value:0xe8efea},
+      {name:'Havsblå', value:0x62b9d0},
+      {name:'Korall', value:0xff927c},
+      {name:'Guld', value:0xe8bf70}
+    ];
+    let mesh = null, currentFile = null, baseSize = 1, originalCenter = new THREE.Vector3();
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#0e3034');
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.01, 100000);
+    camera.position.set(3, 2.5, 4.2);
+    const renderer = new THREE.WebGLRenderer({antialias:true, alpha:false, powerPreference:'high-performance'});
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+    viewport.appendChild(renderer.domElement);
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.07;
+    controls.screenSpacePanning = true;
+    controls.minDistance = 0.01;
+    controls.maxDistance = 100000;
+    scene.add(new THREE.HemisphereLight(0xd9fff3, 0x183437, 2.1));
+    const keyLight = new THREE.DirectionalLight(0xffffff, 3.0);
+    keyLight.position.set(5, 8, 6); scene.add(keyLight);
+    const fillLight = new THREE.DirectionalLight(0x79e0c1, 1.5);
+    fillLight.position.set(-5, 2, -4); scene.add(fillLight);
+    const rimLight = new THREE.DirectionalLight(0xb6dfff, 1.4);
+    rimLight.position.set(1, -3, -5); scene.add(rimLight);
+    const grid = new THREE.GridHelper(10, 20, 0x39706d, 0x244f51);
+    grid.position.y = -1.25;
+    grid.material.transparent = true; grid.material.opacity = 0.38;
+    scene.add(grid);
+    const loader = new STLLoader();
+
+    function setStatus(message, state='') {
+      statusText.textContent = message;
+      statusDot.className = 'status-indicator' + (state ? ' ' + state : '');
+    }
+    function resize() {
+      const w = Math.max(1, viewport.clientWidth), h = Math.max(1, viewport.clientHeight);
+      camera.aspect = w / h; camera.updateProjectionMatrix();
+      renderer.setSize(w, h, false);
+    }
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(viewport); resize();
+    function disposeModel() {
+      if (!mesh) return;
+      scene.remove(mesh); mesh.geometry.dispose(); mesh.material.dispose(); mesh = null;
+    }
+    function formatBytes(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024*1024) return (bytes/1024).toLocaleString('sv-SE',{maximumFractionDigits:1}) + ' kB';
+      return (bytes/(1024*1024)).toLocaleString('sv-SE',{maximumFractionDigits:2}) + ' MB';
+    }
+    function fitCamera() {
+      if (!mesh) return;
+      const box = new THREE.Box3().setFromObject(mesh);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z, 0.001);
+      const fov = THREE.MathUtils.degToRad(camera.fov);
+      let distance = maxDim / (2 * Math.tan(fov / 2));
+      distance *= 1.65;
+      camera.position.copy(center).add(new THREE.Vector3(distance*.85, distance*.62, distance));
+      camera.near = Math.max(maxDim / 10000, 0.0001);
+      camera.far = Math.max(maxDim * 100, 100);
+      camera.updateProjectionMatrix();
+      controls.target.copy(center);
+      controls.minDistance = Math.max(maxDim * 0.01, 0.0001);
+      controls.maxDistance = maxDim * 30;
+      controls.update();
+      baseSize = 1;
+      document.getElementById('model-scale').value = '100';
+      document.getElementById('scale-value').textContent = '100 %';
+    }
+    function setView(view) {
+      if (!mesh) return;
+      const box = new THREE.Box3().setFromObject(mesh);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      const d = Math.max(size.x,size.y,size.z,0.001) * 2.3;
+      const dirs = {
+        front:new THREE.Vector3(0,0,1),
+        top:new THREE.Vector3(0,1,0.001),
+        side:new THREE.Vector3(1,0,0),
+        iso:new THREE.Vector3(1,0.75,1)
+      };
+      camera.position.copy(center).add(dirs[view].normalize().multiplyScalar(d));
+      camera.up.set(0,1,0);
+      controls.target.copy(center); controls.update();
+    }
+    function loadFile(file) {
+      if (!file) return;
+      if (!file.name.toLowerCase().endsWith('.stl')) {
+        setStatus('Välj en fil med ändelsen .stl', 'error'); return;
+      }
+      setStatus('Läser in modellen…');
+      try {
+        const buffer = file.arrayBuffer();
+        buffer.then(data => {
+          let geometry;
+          try { geometry = loader.parse(data); }
+          catch (e) { throw new Error('Filen kunde inte tolkas som STL.'); }
+          if (!geometry || !geometry.attributes.position || geometry.attributes.position.count === 0) {
+            geometry?.dispose(); throw new Error('STL-filen innehåller ingen synlig geometri.');
+          }
+          geometry.computeVertexNormals();
+          geometry.computeBoundingBox();
+          const box = geometry.boundingBox;
+          const size = box.getSize(new THREE.Vector3());
+          const center = box.getCenter(new THREE.Vector3());
+          geometry.translate(-center.x, -center.y, -center.z);
+          disposeModel();
+          const material = new THREE.MeshStandardMaterial({color:colors[0].value, metalness:0.22, roughness:0.34, side:THREE.DoubleSide});
+          mesh = new THREE.Mesh(geometry, material);
+          scene.add(mesh);
+          const maxDim = Math.max(size.x,size.y,size.z,0.001);
+          const gridSize = maxDim * 5;
+          scene.remove(grid); grid.geometry.dispose(); grid.material.dispose();
+          const newGrid = new THREE.GridHelper(gridSize, 20, 0x39706d, 0x244f51);
+          newGrid.position.y = -size.y/2;
+          newGrid.material.transparent = true; newGrid.material.opacity = 0.38;
+          scene.add(newGrid);
+          currentFile = file;
+          document.getElementById('file-name').textContent = file.name;
+          document.getElementById('file-sub').textContent = 'STL-modell · redo att utforska';
+          document.getElementById('info-size').textContent = formatBytes(file.size);
+          document.getElementById('info-dimensions').textContent = [size.x,size.y,size.z].map(v=>v.toLocaleString('sv-SE',{maximumFractionDigits:2})).join(' × ') + ' enheter';
+          document.getElementById('info-format').textContent = geometry.index ? 'STL · indexerad' : 'STL · trianglar';
+          document.getElementById('triangle-count').textContent = Math.floor(geometry.attributes.position.count/3).toLocaleString('sv-SE') + ' trianglar';
+          overlay.classList.add('hidden');
+          document.getElementById('model-color').value = '0';
+          document.getElementById('color-label').textContent = colors[0].name;
+          fitCamera();
+          setStatus('Modellen är inläst', 'ready');
+        }).catch(err => setStatus(err.message || 'Kunde inte läsa filen.', 'error'));
+      } catch (err) { setStatus(err.message || 'Kunde inte läsa filen.', 'error'); }
+    }
+    function chooseFile() { fileInput.click(); }
+    document.getElementById('choose-file').addEventListener('click', chooseFile);
+    document.getElementById('choose-file-empty').addEventListener('click', chooseFile);
+    fileInput.addEventListener('change', e => { loadFile(e.target.files[0]); fileInput.value=''; });
+    document.getElementById('reset-view').addEventListener('click', fitCamera);
+    document.getElementById('fit-model').addEventListener('click', fitCamera);
+    document.querySelectorAll('[data-view]').forEach(btn => btn.addEventListener('click', () => setView(btn.dataset.view)));
+    document.getElementById('model-color').addEventListener('input', e => {
+      const c = colors[Number(e.target.value)]; document.getElementById('color-label').textContent = c.name;
+      if (mesh) mesh.material.color.setHex(c.value);
+    });
+    document.getElementById('model-scale').addEventListener('input', e => {
+      const value = Number(e.target.value)/100; document.getElementById('scale-value').textContent = Math.round(value*100)+' %';
+      if (mesh) mesh.scale.setScalar(value);
+    });
+    ['dragenter','dragover'].forEach(type => wrap.addEventListener(type, e => {
+      e.preventDefault(); wrap.classList.add('dragging');
+    }));
+    ['dragleave','drop'].forEach(type => wrap.addEventListener(type, e => {
+      e.preventDefault(); wrap.classList.remove('dragging');
+    }));
+    wrap.addEventListener('drop', e => {
+      const file = [...(e.dataTransfer?.files || [])].find(f => f.name.toLowerCase().endsWith('.stl'));
+      if (file) loadFile(file); else setStatus('Släpp en STL-fil för att öppna modellen.', 'error');
+    });
+    window.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { overlay.classList.toggle('hidden', !!mesh); }
+    });
+    function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene,camera); }
+    animate();
+  </script>
+</body>
+</html>
